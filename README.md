@@ -1,181 +1,86 @@
-# Bun Module Generator
+# opencode-marimo-pair
 
-Generate a new Bun module in seconds!
+OpenCode plugin for marimo notebook pair programming.
 
-## Why use this? 
+## What It Does
 
-This repo provides a starter template with all the scaffolding you need to build and publish Bun modules.
+This plugin extends OpenCode with:
 
-You get: 
+- **Custom tools** - Execute code in live marimo kernels and discover running servers
+- **Structured error handling** - Reliable tool execution with error objects
+- **Script path caching** - Resolves paths once, reuses on subsequent calls
+- **Console logging** - Errors are logged with `[marimo-pair]` prefix
 
-- A setup script to fill in the blanks and start with a clean git history.
-- Typescript setup courtesy of Bun. (yes you can still publish pkgs for non bun users)
-- Scalable tooling management with [`mise`](http://mise.jdx.dev)
-- Great automated release management with [release-please](https://github.com/googleapis/release-please-action)
-  - two release channels: 
-    - **pre-release** (`.next`) builds for all pr merges to main, and 
-    - **stable releases** for merged release PRs.
-- NPM Trusted Publishing workflow (but you have to manually deploy first version to set up trusted publishing)
+## Prerequisites
 
-## Quick Start
+- `bash`, `curl`, and `jq` on PATH
+- OpenCode installed
 
-### 1. Use this template
-
-Click "Use this template" on GitHub or clone it:
+## Installation
 
 ```bash
-git clone https://github.com/zenobi-us/bun-module.git my-module
-cd my-module
+# Install the plugin
+bun add -d opencode-marimo-pair
 ```
 
-### 2. Run the generator
+## Configuration
 
-```bash
-./setup.sh
+Add to `opencode.json`:
+
+```json
+{
+  "plugin": ["opencode-marimo-pair"]
+}
 ```
 
-### 3. Answer the prompts
+## Available Tools
 
-The generator will ask for:
+### `execute_code`
 
-- **Module name** - kebab-case identifier (e.g., `my-awesome-module`)
-- **Description** - What your module does
-- **Author name** - Your name
-- **Author email** - Your email
-- **Repository URL** - GitHub repo URL
-- **GitHub org/username** - For workflow configuration
+Execute Python code in a live marimo kernel via the scratchpad.
 
-### 4. Start developing!
+**Arguments:**
+- `url` (string, required) - Marimo server URL
+- `code` (string, required) - Python code to execute
+- `file` (string, optional) - Notebook file key
 
-```bash
-cd my-module
-bun install
-mise run build
+**Returns:**
+- `string` - Execution output on success
+- `{ title, output, metadata }` - Error result on failure
+
+### `discover_servers`
+
+Discover running marimo notebook instances from the server registry.
+
+**Returns:**
+- `string` - JSON with server info for each live server
+- `{ title, output, metadata }` - Error result on failure
+
+## Error Handling
+
+All tools return structured error results on failure:
+
+```typescript
+interface PluginError {
+  error: true;
+  message: string;
+  code: 'SCRIPT_NOT_FOUND' | 'EXECUTION_FAILED';
+  details?: Record<string, unknown>;
+}
 ```
 
-## What You Get
-
-After running the generator, you'll have:
-
-- ✅ TypeScript setup with modern tooling
-- ✅ ESLint + Prettier configuration
-- ✅ GitHub Actions workflows (build, lint, release)
-- ✅ Bun module scaffolding
-- ✅ Ready-to-use test setup
-- ✅ Clean git history with initial commit
-
-The generator cleans itself up - no template files or setup script left behind!
-
-### 5. Setup publishing
-
-This repo encouranges using [release-please](http://github.com/googleapis/release-please) for automated releases.
-
-However, before you can rely on that, you need to set up a few things:
-
-1. Manually publish the first version to npm:
-
-   ```bash
-   mise run publish
-   ```
-
-2. Follow the instructions in `./template/RELEASE.md` to set up this repository with npm trusted publishing.
-
-
-## Usage
-
-```bash
-# Generate a new module (interactive prompts)
-./setup.sh generate
-
-# Show help
-./setup.sh help
-
-# Show version
-./setup.sh version
-```
-
-### Non-Interactive Mode
-
-You can skip prompts by setting environment variables with the `BUNMODULE_` prefix:
-
-```bash
-# Provide all values via environment variables
-BUNMODULE_MODULENAME="my-awesome-module" \
-BUNMODULE_DESCRIPTION="An awesome Bun module" \
-BUNMODULE_AUTHORNAME="John Doe" \
-BUNMODULE_AUTHOREMAIL="john@example.com" \
-BUNMODULE_REPOSITORYURL="https://github.com/username/my-awesome-module" \
-BUNMODULE_GITHUBORG="username" \
-./setup.sh generate
-```
-
-**Available Environment Variables:**
-- `BUNMODULE_MODULENAME` - Module name (kebab-case)
-- `BUNMODULE_DESCRIPTION` - Module description
-- `BUNMODULE_AUTHORNAME` - Author name
-- `BUNMODULE_AUTHOREMAIL` - Author email
-- `BUNMODULE_REPOSITORYURL` - Repository URL
-- `BUNMODULE_GITHUBORG` - GitHub organization/username
-
-This is useful for:
-- CI/CD pipelines
-- Automated module generation
-- Scripted workflows
-
-## Project Structure
-
-Generated modules have this structure:
-
-```
-my-module/
-├── src/
-│   ├── index.ts          # Module entry point
-│   └── something/else.ts # All the things! 
-├── .github/
-│   └── workflows/        # CI/CD workflows
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript config
-└── README.md             # Your module's documentation
-```
+Errors are also logged to console with `[marimo-pair]` prefix.
 
 ## Development
 
-### Available Scripts
-
 ```bash
 bun install          # Install dependencies
-mise run setup       # Initial setup
 mise run build       # Build the module
 mise run test        # Run tests
 mise run lint        # Lint code
-mise run lint:fix    # Fix linting issues
-mise run format      # Format code with Prettier
-mise run pkgjsonlint # Lint package.json
-mise run prepare     # Prepare for release
-mise run publish     # Publish the module
-mise run version     # Manage version
+mise run typecheck   # Type-check
 ```
-
-### Publishing
-
-See [RELEASE.md](template/RELEASE.md) for publishing and release management details.
-
-**TL;DR:** Push single commits to main with [conventional commit format](https://www.conventionalcommits.org/). Release-please will accumulate changes in a release PR. When this release PR is merged, a new minor version is released and published to npm. Until then, all other commits on main result in patch builds being published.
-
-## Learn More
-
-- [Bun Documentation](https://bun.sh)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [npm Publishing Guide](https://docs.npmjs.com/packages-and-modules)
 
 ## License
 
 MIT
-
-## Support
-
-Need help?
-
-- Check the [Bun documentation](https://bun.sh)
-- Open an issue on [GitHub](https://github.com/zenobi-us/bun-module/issues)
-- Review the [template documentation](template/README.md)
